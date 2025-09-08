@@ -1,3 +1,6 @@
+from colorama import init as colorama_init
+from colorama import Fore
+from colorama import Style
 import random
 
 suits = ['Bastoni', 'Spade', 'Coppe', 'Denari']
@@ -9,8 +12,18 @@ class Card:
         self.rank = rank
 
     def __str__(self):
-        return f"{self.rank} of {self.suit}"
-    
+        return f"{self.rank} di {self.suit}"
+        
+    def strc(self):
+        if self.suit == 'Bastoni':
+            return f"{self.rank} di {Fore.GREEN}{self.suit}{Style.RESET_ALL}"
+        elif self.suit == 'Spade':
+            return f"{self.rank} di {Fore.BLUE}{self.suit}{Style.RESET_ALL}"
+        elif self.suit == 'Coppe':
+            return f"{self.rank} di {Fore.RED}{self.suit}{Style.RESET_ALL}"
+        elif self.suit == 'Denari':
+            return f"{self.rank} di {Fore.YELLOW}{self.suit}{Style.RESET_ALL}"
+
     def __gt__(self, other):
         if suits.index(self.suit) > suits.index(other.suit):
             return True
@@ -20,6 +33,9 @@ class Card:
 class Deck:
     def __init__(self):
         self.cards = [Card(s, r) for s in suits for r in rank]
+        random.shuffle(self.cards)
+    
+    def shuffle(self):
         random.shuffle(self.cards)
 
     def __str__(self):

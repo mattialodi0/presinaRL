@@ -1,17 +1,19 @@
 import random
 
 class Player:
-    def __init__(self):
+    def __init__(self, id=0):
         self.hand = []
         self.prediction = 0
+        self.id = id
+
 
     def take_hand(self, hand):
         self.hand = hand
         return self.hand
 
-    def make_prediction(self, predictions_made, last=False, round_number=0): # random
+    def make_prediction(self, predictions_made, last=False, hand_size=5): # random
         if last:
-            if sum(predictions_made) == 5-round_number:
+            if sum(predictions_made) == hand_size:
                 self.prediction = 1
             else:
                 self.prediction = 0
