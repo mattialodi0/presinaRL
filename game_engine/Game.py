@@ -1,14 +1,16 @@
 from Deck import Deck, Card
-from Player import Player
-from PlayerNode import PlayerNode, link_players, remove_player
+from players.Player import Player
+from players.HumanPlayer import HumanPlayer
+from PlayerNode import PlayerNode, link_players, remove_player, goto_player
 from colorama import init as colorama_init
 from colorama import Fore
 from colorama import Style
 import numpy as np
+import math
 
 
 class Game:
-    def __init__(self, n=5, r=5, e=2):
+    def __init__(self, n=5, r=5, e=-1):
         if n > 8:
             raise ValueError("Too many players")
         
@@ -21,8 +23,10 @@ class Game:
         self.predictions = np.zeros((r, n))
         self.catches = np.zeros((r, n))
         self.max_errors = e
+        if e == -1:
+            self.max_errors = math.inf
 
-    def play(self, verbose=True):
+    def play(self, verbose=True, show_hands=True):
         for round in range(self.max_rounds):
             hand_size = 5 - (round % 5)
             
@@ -36,15 +40,14 @@ class Game:
                 card_strs = hand[0].strc()
                 for card in hand[1:]:
                     card_strs += ", " + card.strc()
-                if verbose:
+                if verbose and show_hands:
                     print(f"Player {player.id} hand: [{card_strs}]")
 
             # make prediction
-            s = self.current_player
             current_preds = []
             player_node = self.current_player
             for _ in range(len(self.players)):
-                if player_node.next.player.id == s.player.id:
+                if player_node.next.player.id == self.current_player.player.id:
                     last = True
                 else:
                     last = False
@@ -54,21 +57,19 @@ class Game:
                 if verbose:
                     print(f"Player {player_node.player.id} prediction: {p}")
                 player_node = player_node.next
-            self.current_player = s
+            player_node = self.current_player
 
             # play cards
             for turn in range(hand_size):
                 if verbose:
                     print(f"--- Turn {turn+1} ---")
                 played_cards = {}
-                player_node = self.current_player
                 for _ in range(len(self.players)):
-                    card = player_node.player.play_card(played_cards.values())
+                    card = player_node.player.play_card(list(map(lambda c: str(c), played_cards.values())))
                     if verbose:
                         print(f"Player {player_node.player.id} plays: {card.strc()}")
                     played_cards[player_node.player.id] = card
                     player_node = player_node.next
-                self.current_player = s
 
                 if not len(played_cards.values()) == len(self.players):
                     raise ValueError("Not all players played a card")
@@ -80,6 +81,7 @@ class Game:
                         if self.predictions[round, id] > self.catches[round, id]:
                             ace = True
                             self.catches[round, id] += 1
+                            player_node = goto_player(player_node, id)
                             if verbose:
                                 print(f"Player {id} takes")
                         else:
@@ -93,10 +95,9 @@ class Game:
                             max = card
                             max_idx = idx
                     self.catches[round, max_idx] += 1
+                    player_node = goto_player(player_node, max_idx)
                     if verbose:
                         print(f"Player {max_idx} takes")
-
-                    
 
             if verbose:
                 print(" ")
@@ -132,3 +133,26 @@ class Game:
 
         print("Game Over")
         print(f"Players remaining: {[player.id for player in self.players]}")
+
+
+
+    def print_stats(self):
+        print("\n--- Game Stats ---")
+        for i, player in enumerate(self.players):
+            total_errors = int(np.sum(self.errors[:, player.id]))
+            total_predictions = int(np.sum(self.predictions[:, player.id]))
+            total_catches = int(np.sum(self.catches[:, player.id]))
+            print(f"Player {player.id}: Errors: {total_errors}, Predictions: {total_predictions}, Catches: {total_catches}")
+        return self.predictions, self.catches, self.errors
+
+class PlayableGame(Game):
+    def __init__(self, n=5, r=5, e=-1, human_pos=0):
+        super().__init__(n, r, e)
+        if human_pos < 0 or human_pos >= n:
+            raise ValueError("Invalid human player position")
+        self.human_pos = human_pos
+        self.players[human_pos] = HumanPlayer(id=human_pos)
+        self.current_player = link_players(self.players)
+    
+    def play(self):
+        super().play(True, show_hands=False)

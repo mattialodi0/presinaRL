@@ -50,3 +50,20 @@ def remove_player(head, player_id):
             break  # Came back to the head, player not found
 
     return head  # Player not found, return original head
+
+def goto_player(head, player_id):
+    if head is None:
+        return None
+
+    current = head
+
+    while True:
+        if current.player.id == player_id:
+            return current
+
+        current = current.next
+
+        if current == head:
+            break  # Came back to the head, player not found
+
+    return None  # Player not found

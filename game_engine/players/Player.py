@@ -27,3 +27,4 @@ class Player:
 
     def play_card(self, played_cards): # random
         return self.hand.pop() if self.hand else None
+    
