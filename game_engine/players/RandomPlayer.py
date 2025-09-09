@@ -8,12 +8,12 @@ class RandomPlayer(Player):
 
     def make_prediction(self, predictions_made, last=False, hand_size=5): # random
         if last:
-            if sum(predictions_made) == hand_size:
-                self.prediction = 1
-            else:
-                self.prediction = 0
+            while True:
+                self.prediction = random.randint(0, hand_size)
+                if not sum(predictions_made)+self.prediction == hand_size:
+                    break
         else:
-            self.prediction = sum(1 for card in self.hand if getattr(card, 'suit', None) == 'Denari')
+            self.prediction = random.randint(0, hand_size)
         return self.prediction
     
     def make_prediction_last_round(self, cards, predictions_made): # random
@@ -21,5 +21,6 @@ class RandomPlayer(Player):
         return self.prediction
 
     def play_card(self, played_cards): # random
-        return self.hand.pop() if self.hand else None
+        r = random.randint(0, len(self.hand)-1)
+        return self.hand.pop(r) if self.hand else None
     
