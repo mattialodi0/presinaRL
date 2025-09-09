@@ -1,6 +1,7 @@
 from Deck import Deck, Card
 from players.Player import Player
 from players.HumanPlayer import HumanPlayer
+from players.RandomPlayer import RandomPlayer
 from PlayerNode import PlayerNode, link_players, remove_player, goto_player
 from colorama import init as colorama_init
 from colorama import Fore
@@ -10,25 +11,32 @@ import math
 
 
 class Game:
-    def __init__(self, n=5, r=5, e=-1):
+    def __init__(self, n=5, r=5, e=-1, s=0):
         if n > 8:
             raise ValueError("Too many players")
+        if s > 5:
+            raise ValueError("Too many starting cards")
         
         self.deck = Deck()
         self.round = 0
         self.max_rounds = r
-        self.players = [Player(id) for id in range(n)]
+        self.starting_round = s
+        self.max_players = n
+        self.players = [RandomPlayer(id) for id in range(n)]
         self.current_player = link_players(self.players)
         self.errors = np.zeros((r, n))
         self.predictions = np.zeros((r, n))
         self.catches = np.zeros((r, n))
+        self.first_in_turn = np.zeros((r, n))
+        self.last_in_turn = np.zeros((r, n))
         self.max_errors = e
         if e == -1:
             self.max_errors = math.inf
 
     def play(self, verbose=True, show_hands=True):
         for round in range(self.max_rounds):
-            hand_size = 5 - (round % 5)
+            # hand_size = 5 - (round % 5)
+            hand_size = 5 - ((round+self.starting_round) % 5)
             
             if verbose:
                 print(f"\n--- Round {round+1}: {hand_size} card(s) ---")
@@ -57,10 +65,13 @@ class Game:
                 if verbose:
                     print(f"Player {player_node.player.id} prediction: {p}")
                 player_node = player_node.next
+                # TODO check last prediction
             player_node = self.current_player
 
             # play cards
             for turn in range(hand_size):
+                self.first_in_turn[round, player_node.player.id] += 1
+                self.last_in_turn[round, goto_player(player_node, (player_node.player.id+len(self.players)-1)%len(self.players)).player.id] += 1
                 if verbose:
                     print(f"--- Turn {turn+1} ---")
                 played_cards = {}
@@ -131,19 +142,36 @@ class Game:
             self.current_player = self.current_player.next
             self.deck = Deck()
 
-        print("Game Over")
-        print(f"Players remaining: {[player.id for player in self.players]}")
+        if verbose:
+            print("Game Over")
+            print(f"Players remaining: {[player.id for player in self.players]}")
 
+    def return_stats(self):
+        winners = np.zeros(self.max_players)
+        if self.max_errors == math.inf:
+            min = np.min(self.errors[-1])
+            for i, e in enumerate(self.errors[-1]):
+                if e == min:
+                    winners[i] = 1
+        else:
+            for p in self.players:
+                winners[p.id] = 1
+        
+        stats = {
+            "predictions": self.predictions,
+            "catches": self.catches,
+            "errors": self.errors,
+            "first_in_turn": self.first_in_turn,
+            "last_in_turn": self.last_in_turn,
+            "tot_predictions": np.sum(self.predictions, axis=0),
+            "tot_catches": np.sum(self.catches, axis=0),
+            "tot_errors": np.sum(self.errors, axis=0),
+            "tot_first": np.sum(self.first_in_turn, axis=0),
+            "tot_last": np.sum(self.last_in_turn, axis=0),
+            "winners": winners,
+        }
+        return stats
 
-
-    def print_stats(self):
-        print("\n--- Game Stats ---")
-        for i, player in enumerate(self.players):
-            total_errors = int(np.sum(self.errors[:, player.id]))
-            total_predictions = int(np.sum(self.predictions[:, player.id]))
-            total_catches = int(np.sum(self.catches[:, player.id]))
-            print(f"Player {player.id}: Errors: {total_errors}, Predictions: {total_predictions}, Catches: {total_catches}")
-        return self.predictions, self.catches, self.errors
 
 class PlayableGame(Game):
     def __init__(self, n=5, r=5, e=-1, human_pos=0):
