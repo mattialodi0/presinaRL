@@ -1,6 +1,6 @@
-from Player import Player
+from players.Player import Player
 
-class CiroPlaystyle(Player):
+class CiroPlayer(Player):
     """
     Giocatore 'tattico' basato su:
     1) Forza media mano + aggiustamento di posizione (parametrico)
