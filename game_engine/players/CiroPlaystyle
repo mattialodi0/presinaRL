@@ -1,0 +1,168 @@
+from Player import Player
+
+class CiroPlaystyle(Player):
+    """
+    Giocatore 'tattico' basato su:
+    1) Forza media mano + aggiustamento di posizione (parametrico)
+    2) Scelta carta per minimizzare |prese fatte - prese dichiarate|
+    3) Predizione ultimo round basata SOLO sulla forza (degli altri)
+    """
+
+    def __init__(self, id=0, position_adjust=1):
+        """
+        :param position_adjust: entità (intera) dell'aggiustamento in base alle
+                                predizioni dei giocatori prima (0 = nessun effetto,
+                                1 = lieve, 2 = più marcato, ...). Non stravolge il criterio 1).
+        """
+        super().__init__(id)
+        self.position_adjust = int(position_adjust)
+        self._strength_map = None
+        self._estimated_takes = 0  # stima prese fatte nel round in corso
+
+    # --------------------------- UTILITIES ---------------------------
+
+    @staticmethod
+    def _key(card):
+        """Chiave di ordinamento coerente con gli operatori di confronto di Card."""
+        return card  # Card ha già __lt__/__gt__: possiamo usare direttamente l’oggetto
+
+    def _build_strength_map(self):
+        """
+        Costruisce la mappa di forza 1..40 secondo le regole di Presine:
+        Bastoni (1-10), Spade (11-20), Coppe (21-30), Denari (31-40).
+        """
+        order_suits = ["Bastoni", "Spade", "Coppe", "Denari"]
+        self._strength_map = {}
+        for si, suit in enumerate(order_suits):
+            base = si * 10
+            # Attenzione: i rank in Card sono stringhe ('1', '2', ..., '10')
+            for r in range(1, 11):
+                self._strength_map[(suit, str(r))] = base + r
+
+
+    def _strength(self, card) -> int:
+        if self._strength_map is None:
+            self._build_strength_map()
+        return self._strength_map[(card.suit, card.rank)]
+
+
+    def _avg_hand_strength(self) -> float:
+        """Media 1..40 sulle carte in mano."""
+        if not self.hand:
+            return 0.0
+        s = sum(self._strength(c) for c in self.hand)
+        return s / len(self.hand)
+
+    def _has_ace_denari(self) -> bool:
+        return any(c.rank == '1' and c.suit == 'Denari' for c in self.hand)
+
+    # --------------------------- ROUND LIFECYCLE ---------------------------
+
+    def take_hand(self, hand):
+        """
+        Resetta lo stato di round e prende la mano (mantiene compatibilità con Player).
+        """
+        super().take_hand(hand)
+        self._estimated_takes = 0
+
+    # --------------------------- PREDICTIONS ---------------------------
+
+    def make_prediction(self, predictions_made, last=False, hand_size=5):
+        """
+        1) Criterio base (forza media 1..40):
+           - media > 30  -> 2 prese
+           - 20 < media <= 30 -> 1 presa
+           - altrimenti -> 0 prese
+           - eccezione: se media > 30 e ho l'Asso di Denari -> 3 prese (se hand_size >= 3)
+
+        2) Aggiustamento di posizione:
+           guardo il 'ratio' medio dichiarato finora: sum(pred)/(hand_size * num_giocatori_già_passati).
+           Se è alto (>0.6) diminuisco di `position_adjust`; se è basso (<0.4) aumento di `position_adjust`.
+           Taglio sempre a [0, hand_size].
+        """
+        avg_strength = self._avg_hand_strength()
+
+        # Criterio base
+        if avg_strength > 30:
+            base = hand_size
+        elif avg_strength > 25:
+            base = hand_size - 1
+        elif avg_strength > 20:
+            base = max(hand_size-2, 1)
+        else:
+            base = 0
+
+        # Aggiustamento di posizione (non applico se nessuno ha parlato)
+        if predictions_made:
+            ratio = sum(predictions_made) / (hand_size * len(predictions_made))
+            if ratio > 0.60:
+                base -= self.position_adjust
+            elif ratio < 0.40:
+                base += self.position_adjust
+
+        # Tagli ai limiti
+        base = max(0, min(hand_size, int(base)))
+        # memorizzo la dichiarazione per l'euristica in play_card
+        self.prediction = base
+        return base
+
+    def make_prediction_last_round(self, cards, predictions_made):
+        """
+        3) Ultimo round: basato SOLO sulla forza delle carte degli altri.
+           'Se c'è anche solo una carta > 20, dichiara 0; altrimenti 1'.
+           Qui assumo che 'cards' contenga le carte (degli altri) visibili come oggetti Card.
+           Se arrivano come stringhe, questa logica va adattata al parser.
+        """
+        # mi assicuro di avere la strength map
+        if self._strength_map is None:
+            self._build_strength_map()
+
+        any_over_20 = False
+        for c in cards:
+            # se 'cards' sono stringhe, qui servirebbe un parser -> possiamo aggiungerlo se necessario
+            if self._strength(c) > 20:
+                any_over_20 = True
+                break
+
+        pred = 0 if any_over_20 else 1
+        self.prediction = pred
+        return pred
+
+    # --------------------------- PLAY CARD ---------------------------
+
+    def play_card(self, played_cards):
+        """
+        Strategia:
+        - Se devo ancora fare prese (stima) -> provo a prendere: gioco la più alta.
+        - Se non devo più prendere -> evito: gioco la più bassa.
+        Limite: in Game arrivano le carte già giocate come stringhe; senza oggetti Card
+        non posso garantire la scelta 'più alta che NON prende'. Implemento quindi
+        high/low come euristica robusta e semplice.
+        """
+        # euristica della stima prese: se sto guidando una nuova mano (played_cards vuota)
+        # e NON è il primo trick del round (si deduce dalla dimensione della mano residua),
+        # è probabile che io abbia preso la mano precedente. Aggiorno la stima.
+        # Primo trick del round: len(self.hand) == len_predetta all'inizio => non incremento.
+        if not played_cards:
+            # se non è il primo trick (cioè ho già giocato almeno una carta prima)
+            # len(self.hand) < mano_iniziale -> ma non ho un contatore; uso una semplice euristica:
+            # quando entriamo qui più avanti nel round capita spesso dopo aver preso.
+            # Incremento se ho dichiarato > stima corrente e non sono all'inizio.
+            if self.prediction is not None and self._estimated_takes < self.prediction:
+                # incremento solo se non siamo al primissimo giro (quando mano è appena stata distribuita)
+                pass  # lasciamo neutro per non sovrastimare
+
+        # Decide se puntare a prendere o a evitare
+        need_to_take = (self.prediction or 0) > self._estimated_takes
+
+        # Ordino la mia mano per forza
+        sorted_hand = sorted(self.hand, key=self._key)  # dal più basso al più alto
+
+        if need_to_take:
+            chosen = sorted_hand[-1]  # la più alta
+        else:
+            chosen = sorted_hand[0]   # la più bassa
+
+        # Rimuovo e ritorno
+        self.hand.remove(chosen)
+        return chosen
