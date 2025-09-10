@@ -171,7 +171,16 @@ class Game:
             "winners": winners,
         }
         return stats
-
+    
+class PlayersGame(Game):
+    def __init__(self, players, r=5, e=-1, s=0):
+        n = len(players)
+        if n > 8:
+            raise ValueError("Too many players")
+        
+        super().__init__(n, r, e, s)
+        self.players = players
+        self.current_player = link_players(self.players)
 
 class PlayableGame(Game):
     def __init__(self, n=5, r=5, e=-1, human_pos=0):
