@@ -3,6 +3,8 @@ from players.Player import Player
 
 # to play against random (cannot exploit predictions)
 class LodoPlayer(Player):
+    "Lodo player class, all decisions are based on simple heuristics."
+
     def __init__(self, id=0):
         super().__init__(id)
 

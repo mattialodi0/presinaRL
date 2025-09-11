@@ -1,4 +1,5 @@
-from Game import Game, PlayersGame, PlayableGame
+from Game import Game
+from GameVariants import PlayersGame, PlayableGame
 from players.RandomPlayer import RandomPlayer
 from players.CiroPlayer import CiroPlayer
 from players.LodoPlayer import LodoPlayer

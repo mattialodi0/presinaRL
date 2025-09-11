@@ -3,6 +3,7 @@ import random
 
 
 class RandomPlayer(Player):
+    """Random player class, all decisions are random."""
     def __init__(self, id=0):
         super().__init__(id)
 

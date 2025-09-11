@@ -2,6 +2,7 @@ from players.Player import Player
 
 
 class HumanPlayer(Player):
+    """Human player class, all decisions are made via user input."""
     def __init__(self, id=0):
         super().__init__(id)
         print(f"Registered as Player {id}")
