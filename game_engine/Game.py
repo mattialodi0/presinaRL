@@ -149,8 +149,8 @@ class Game:
     def return_stats(self):
         winners = np.zeros(self.max_players)
         if self.max_errors == math.inf:
-            min = np.min(self.errors[-1])
-            for i, e in enumerate(self.errors[-1]):
+            min = np.min(np.sum(self.errors, axis=0))
+            for i, e in enumerate(np.sum(self.errors, axis=0)):
                 if e == min:
                     winners[i] = 1
         else:

@@ -29,6 +29,9 @@ class Card:
             return True
         elif suits.index(self.suit) == suits.index(other.suit):
             return rank.index(self.rank) > rank.index(other.rank)
+    
+    def value(self):
+        return suits.index(self.suit) * 10 + rank.index(self.rank)
 
 class Deck:
     def __init__(self):
