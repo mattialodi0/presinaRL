@@ -11,28 +11,28 @@ class LodoPlayer(Player):
     def take_hand(self, hand):
         super().take_hand(sorted(hand, key=lambda card: (card.suit, card.rank), reverse=True))
 
-    def make_prediction(self, predictions_made, last=False, hand_size=5):
+    def make_prediction(self, game_state):
         self.prediction = 0
         for card in self.hand:
             if card.value() > 30:
                 self.prediction += 1
-        if last:
-            if sum(predictions_made)+self.prediction == hand_size:
+        if game_state["players_position"].index(self.id) == game_state["num_players"] - 1:
+            if sum(game_state["predictions_made"])+self.prediction == game_state["hand_size"]:
                 if self.prediction > 0:
                     self.prediction -= 1
                 else:
                     self.prediction += 1
         return self.prediction
 
-    def make_prediction_last_round(self, cards, predictions_made):
-        cards_values = [card.value() for card in cards]
+    def make_prediction_last_round(self, game_state):
+        cards_values = [card.value() for card in game_state["cards_visible"]]
         if max(cards_values) > 20:
             self.prediction = 0
         else:
             self.prediction = 1
         return self.prediction
 
-    def play_card(self, played_cards):
+    def play_card(self, game_state):
         return self.hand.pop() if self.hand else None
 
 

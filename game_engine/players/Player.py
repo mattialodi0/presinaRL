@@ -15,10 +15,10 @@ class Player:
         """ Here game_state contains:
             - num of players left -> int
             - hand size -> int
-            - self position in the round -> int
+            - players (id) position in the round -> [int]
             - predictions made so far -> list
         """
-        last = game_state["self_position"] == game_state["num_players"] - 1
+        last = game_state["players_position"].index(self.id) == game_state["num_players"] - 1
         if last:
             if sum(game_state["predictions_made"]) == game_state["hand_size"]:
                 self.prediction = 1
@@ -31,9 +31,10 @@ class Player:
     def make_prediction_last_round(self, game_state):
         """ Here game_state contains:
             - num of players left -> int
-            - cards visible -> list
+            - hand size -> int
             - players (id) position in the round -> [int]
             - predictions made so far -> [int]
+            - cards visible -> list
         """
         self.prediction = 0
         return self.prediction

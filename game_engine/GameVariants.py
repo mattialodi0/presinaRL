@@ -1,5 +1,5 @@
-from game_engine.Game import Game
-from game_engine.players import HumanPlayer
+from Game import Game
+from players.HumanPlayer import HumanPlayer
 from PlayerNode import link_players
 
     
@@ -14,8 +14,8 @@ class PlayersGame(Game):
         self.current_player = link_players(self.players)
 
 class PlayableGame(Game):
-    def __init__(self, n=5, r=5, e=-1, human_pos=0):
-        super().__init__(n, r, e)
+    def __init__(self, n=5, r=5, e=-1, s=0, human_pos=0):
+        super().__init__(n, r, e, s)
         if human_pos < 0 or human_pos >= n:
             raise ValueError("Invalid human player position")
         self.human_pos = human_pos
@@ -23,4 +23,4 @@ class PlayableGame(Game):
         self.current_player = link_players(self.players)
     
     def play(self):
-        super().play(True, show_hands=False)
+        super().play(2)
