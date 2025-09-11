@@ -8,6 +8,7 @@ from colorama import Fore
 from colorama import Style
 import numpy as np
 import math
+colorama_init()
 
 
 class Game:
@@ -24,7 +25,6 @@ class Game:
         if s > 5:
             raise ValueError("Too many starting cards")
 
-        colorama_init()
         self.deck = Deck()
         self.round = 0
         self.max_rounds = r
