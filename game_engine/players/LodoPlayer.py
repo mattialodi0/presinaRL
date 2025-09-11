@@ -1,4 +1,5 @@
 from players.Player import Player
+from numpy import average as avg
 
 
 # to play against random (cannot exploit predictions)
@@ -26,7 +27,8 @@ class LodoPlayer(Player):
 
     def make_prediction_last_round(self, game_state):
         cards_values = [card.value() for card in game_state["cards_visible"]]
-        if max(cards_values) > 20:
+        remaining_cards = [v for v in range(0, 41) if v not in cards_values]
+        if max(cards_values) > avg(remaining_cards):
             self.prediction = 0
         else:
             self.prediction = 1
