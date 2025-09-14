@@ -32,6 +32,11 @@ class Card:
     
     def value(self):
         return suits.index(self.suit) * 10 + rank.index(self.rank)
+    
+    def from_value(value):
+        suit = suits[value // 10]
+        rank_ = rank[value % 10]
+        return Card(suit, rank_)
 
 class Deck:
     def __init__(self):
@@ -52,3 +57,6 @@ class Deck:
         for _ in range(num_cards):
             hand.append(self.draw_card())
         return hand
+
+    def remove(self, card):
+        self.cards = [c for c in self.cards if not (c.suit == card.suit and c.rank == card.rank)]

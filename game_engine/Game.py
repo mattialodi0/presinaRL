@@ -12,6 +12,7 @@ colorama_init()
 
 
 class Game:
+
     def __init__(self, n=5, r=5, e=-1, s=0):
         """Initialize the game with given parameters.
             - n: number of players (max 8)
@@ -65,7 +66,7 @@ class Game:
                     if self.verbose >= 2:
                         print(f"--- Turn {turn+1} ---")
 
-                    played_cards = self.playCards()
+                    played_cards = self.playCards(hand_size, turn)
                     self.determineCatches(round, played_cards)
             else:
                 visible_cards = []
@@ -150,11 +151,25 @@ class Game:
             raise ValueError(f"Invalid prediction from player {self.player_node.player.id}")
         self.player_node = self.current_player
 
-    def playCards(self):
+    def playCards(self, hand_size, turn):
+        game_state = {
+            "num_players": len(self.players),
+            "hand_size": hand_size,
+            "turn": turn,
+            "players_position": [],
+            "predictions": self.predictions[self.round, :].copy(),
+            "catches": self.catches[self.round, :].copy()
+        }
+        t = self.player_node
+        for _ in self.players:
+            game_state["players_position"].append(t.player.id)
+            t = t.next
+
         played_cards = {}
         for _ in range(len(self.players)):
-            card = self.player_node.player.play_card(
-                list(map(lambda c: str(c), played_cards.values())))
+            # game_state["played_cards"] = list(map(lambda c: str(c), played_cards.values()))
+            game_state["played_cards"] = played_cards.copy()
+            card = self.player_node.player.play_card(game_state)
             if self.verbose:
                 print(
                     f"Player {self.player_node.player.id} plays: {card.strc()}")
