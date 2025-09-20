@@ -2,7 +2,11 @@ from Game import Game
 from GameVariants import PlayersGame, PlayableGame
 from players.CiroPlayer import CiroPlayer
 from players.MCPlayerLite import MCPlayerLite
+from players.MonteCarloPlayer import MonteCarloPlayer
 from itertools import permutations
+import time
+
+start = time.time()
 
 # --- alg. player matchup ---
 ciroPlayer_wins = 0
@@ -19,7 +23,7 @@ for _ in range(5):  # repeat to reduce variance
             if s == 'C':
                 players.append(CiroPlayer(i))
             else:
-                players.append(MCPlayerLite(i))
+                players.append(MonteCarloPlayer(i))
 
         game = PlayersGame(players, r=5)
         game.play(verbose=False)
@@ -40,3 +44,6 @@ print("CiroPlayer wins:", ciroPlayer_wins)
 print("MCPlayer wins:", MCPlayer_wins)
 print("CiroPlayer errors:", ciroPlayer_errs)
 print("MCPlayer errors:", MCPlayer_errs)
+
+end = time.time()
+print(f"Tempo di esecuzione: {end - start:.6f} secondi")
