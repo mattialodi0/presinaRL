@@ -33,30 +33,38 @@ class LodoPlayer1(Player):
         cards_values = [card.value() for card in cards_visible]
         remaining_cards = [v for v in range(0, 40) if v not in cards_values]
         suggested_pred = []
+        if max(cards_values) > avg(remaining_cards):
+            self.prediction = 0
+        else:
+            self.prediction = 1
 
         for p in range(game_state["players_position"].index(self.id)):
             p_pred = predictions_made[players_position.index(p)]
             p_cards_visible = cards_values.copy()
             p_cards_visible.pop(p)
-            p_threshold = 20 - sum(1 for card in p_cards_visible if card >= 20) + sum(1 for card in p_cards_visible if card < 20)
-            print(p_threshold)
+            p_threshold = 19.5 - sum(1 for card in p_cards_visible if card >= 20) + sum(1 for card in p_cards_visible if card < 20)
+            #print(p_threshold)
             
             if p_pred > 0:
-                if len([c for c in remaining_cards if (c < p_threshold and c > max(p_cards_visible))]) >= \
-                    len([c for c in remaining_cards if c < max(p_cards_visible)]):
+                if len([c for c in remaining_cards if (c < p_threshold and c > max(cards_values))]) >= \
+                    len([c for c in remaining_cards if c < max(cards_values)]):
                     suggested_pred.append(1)
                 else:
                     suggested_pred.append(0)
+            if p_pred == 0 and not any(v > p_threshold for v in p_cards_visible):
+                if len([c for c in remaining_cards if (c >= p_threshold and c < max(cards_values))]) >= \
+                    len([c for c in remaining_cards if c > max(cards_values)]):
+                    suggested_pred.append(0)
+                else:
+                    suggested_pred.append(1)
             else:
-                if len([c for c in remaining_cards if (c >= p_threshold and c < max(p_cards_visible))]) >= \
-                    len([c for c in remaining_cards if c > max(p_cards_visible)]):
-                    suggested_pred.append(0)
-                else:
-                    suggested_pred.append(1)
+                suggested_pred.append(0)
+        if 1 in suggested_pred:
+            self.prediction = 1
 
-        print(f"card val: {cards_values}")
-        print(f"predictions made: {predictions_made}")
-        print(f"suggested pred: {suggested_pred}")
+        #print(f"card val: {cards_values}")
+        #print(f"predictions made: {predictions_made}")
+        #print(f"suggested pred: {suggested_pred}")
         return self.prediction
 
     def play_card(self, game_state):

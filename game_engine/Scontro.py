@@ -3,6 +3,7 @@ from GameVariants import PlayersGame, PlayableGame
 from players.CiroPlayer import CiroPlayer
 from players.MCPlayerLite import MCPlayerLite
 from players.MonteCarloPlayer import MonteCarloPlayer
+from players.LodoPlayer1 import LodoPlayer1
 from itertools import permutations
 import time
 
@@ -10,9 +11,9 @@ start = time.time()
 
 # --- alg. player matchup ---
 ciroPlayer_wins = 0
-MCPlayer_wins = 0
+lodo_wins = 0
 ciroPlayer_errs = 0
-MCPlayer_errs = 0
+lodo_errs = 0
 
 for _ in range(5):  # repeat to reduce variance
     # all possible permutations
@@ -23,9 +24,9 @@ for _ in range(5):  # repeat to reduce variance
             if s == 'C':
                 players.append(CiroPlayer(i))
             else:
-                players.append(MonteCarloPlayer(i))
+                players.append(LodoPlayer1(i))
 
-        game = PlayersGame(players, r=5)
+        game = PlayersGame(players, r=1, s=4)
         game.play(verbose=False)
         stats = game.return_stats()
         for i, w in enumerate(stats["winners"]):
@@ -33,17 +34,17 @@ for _ in range(5):  # repeat to reduce variance
                 if p[i] == 'C':
                     ciroPlayer_wins += 1
                 else:
-                    MCPlayer_wins += 1
+                    lodo_wins += 1
         for i, e in enumerate(stats["tot_errors"]):
             if p[i] == 'C':
                 ciroPlayer_errs += e
             else:
-                MCPlayer_errs += e
+                lodo_errs += e
 
 print("CiroPlayer wins:", ciroPlayer_wins)
-print("MCPlayer wins:", MCPlayer_wins)
+print("Lodo wins:", lodo_wins)
 print("CiroPlayer errors:", ciroPlayer_errs)
-print("MCPlayer errors:", MCPlayer_errs)
+print("Lodo errors:", lodo_errs)
 
 end = time.time()
 print(f"Tempo di esecuzione: {end - start:.6f} secondi")
