@@ -17,7 +17,7 @@ lodo_errs = 0
 
 for _ in range(5):  # repeat to reduce variance
     # all possible permutations
-    perm = permutations(['C', 'C', 'M', 'M'], 4)
+    perm = permutations(['C', 'C', 'L', 'L'], 4)
     for p in perm:
         players = []
         for i, s in enumerate(p):
