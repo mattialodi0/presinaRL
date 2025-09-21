@@ -3,6 +3,7 @@ from GameVariants import PlayersGame, PlayableGame
 from players.RandomPlayer import RandomPlayer
 from players.CiroPlayer import CiroPlayer
 from players.LodoPlayer import LodoPlayer
+from players.LodoPlayer1 import LodoPlayer1
 from players.MonteCarloPlayer import MonteCarloPlayer
 from players.HumanPlayer import HumanPlayer
 from itertools import permutations
@@ -20,10 +21,10 @@ if __name__ == "__main__":
     # game.play()
 
     # --- game with custom player ---
-    game = PlayersGame([HumanPlayer(0), MonteCarloPlayer(1), MonteCarloPlayer(2), MonteCarloPlayer(3)], r=5)
-    game.play(verbose=2)
-    stats = game.return_stats()
-    print(stats)
+    game = PlayersGame([CiroPlayer(0), CiroPlayer(1), CiroPlayer(2), LodoPlayer1(3)], r=1, s=4)
+    game.play(verbose=0)
+    # stats = game.return_stats()
+    # print(stats)
 
     # # --- alg. player matchup ---
     # ciroPlayer_wins = 0
