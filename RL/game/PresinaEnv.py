@@ -1,7 +1,7 @@
 import gym
 from gym import spaces
 import numpy as np
-from ..game_engine.Game import Game 
+from ...game_engine.Game import Game 
 
 
 
