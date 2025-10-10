@@ -6,9 +6,9 @@ import sys
 from collections import defaultdict
 if "../" not in sys.path:
   sys.path.append("../") 
-from game.presina_env import PresinaEnv
+from RL.game.PresinaEnvLastRound import PresinaEnvLastRound
 
-env = PresinaEnv()
+env = PresinaEnvLastRound()
 
 
 def create_random_policy(nA):

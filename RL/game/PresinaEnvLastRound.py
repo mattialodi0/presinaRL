@@ -5,10 +5,10 @@ import random
 
 register(
     id='Presina-v0',
-    entry_point='presina_env:PresinaEnv',
+    entry_point='PresinaEnvLastRound:PresinaEnvLastRound',
 )
 
-class PresinaEnv(gym.Env):
+class PresinaEnvLastRound(gym.Env):
     metadata = {"render_modes": ["human"], "render_fps":1}
 
     def __init__(self, n_players=4, render_mode=None):

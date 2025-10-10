@@ -8,16 +8,15 @@ from collections import deque
 
 from game.PresinaEnv import PresinaEnv
 
-env = PresinaEnv(hand_size=4, num_players=4)
+env = PresinaEnv(hand_size=5, num_players=4)
 
 # DQN Network
 class DQN(nn.Module):
     def __init__(self, state_size, action_size):
         super(DQN, self).__init__()
-        neurons = 128
-        self.fc1 = nn.Linear(state_size, neurons)
-        self.fc2 = nn.Linear(neurons, neurons)
-        self.fc3 = nn.Linear(neurons, action_size)
+        self.fc1 = nn.Linear(state_size, 128)
+        self.fc2 = nn.Linear(128, 128)
+        self.fc3 = nn.Linear(128, action_size)
     def forward(self, x):
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
@@ -31,16 +30,8 @@ class ReplayBuffer:
         self.buffer.append((state, action, reward, next_state, done))
     def sample(self, batch_size):
         batch = random.sample(self.buffer, batch_size)
-        # unzip
-        states, actions, rewards, next_states, dones = zip(*batch)
-        # states and next_states are numpy arrays themselves -> stack into a 2D array
-        states = np.stack(states)
-        next_states = np.stack(next_states)
-        # actions, rewards, dones are scalars -> convert to arrays
-        actions = np.array(actions)
-        rewards = np.array(rewards)
-        dones = np.array(dones)
-        return states, actions, rewards, next_states, dones
+        state, action, reward, next_state, done = map(np.array, zip(*batch))
+        return state, action, reward, next_state, done
     def __len__(self):
         return len(self.buffer)
 
@@ -48,8 +39,7 @@ def preprocess_state(state):
     # Flatten dict observation into 1D array
     hand = state['hand']
     played = state['played']
-    predictions = np.pad(state['predictions'], (0, env.num_players - 1 - len(state['predictions'])), mode='constant', constant_values=-1)
-    print(predictions)
+    predictions = state['predictions']
     phase = [state['phase']]
     takes = [state['takes']]
     return np.concatenate([hand, played, predictions, phase, takes]).astype(np.float32)

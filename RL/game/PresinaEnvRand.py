@@ -5,14 +5,13 @@ import numpy as np
 import random
 
 register(
-    id='Presina-v2',
-    entry_point='PresinaEnv:PresinaEnv',
+    id='Presina-v1',
+    entry_point='PresinaEnvRand:PresinaEnvRand',
 )
 
-class PresinaEnv(gym.Env):
+class PresinaEnvRand(gym.Env):
     metadata = {"render_modes": ["human"], "render_fps":1}
     """
-    Improved version with better players
     Rules:
       - Deck of integers 1..40.
       - num_players players total; agent is player 0.
@@ -80,7 +79,8 @@ class PresinaEnv(gym.Env):
         self.played = [0]*self.num_players
         self.current_phase = 0
         self.agent_prediction = -1
-        self.opponent_predictions = []
+        # opponents randomly predict
+        self.opponent_predictions = [random.randint(0, self.hand_size) for _ in range(self.num_players-1)]
         self.takes = 0
         self.turn = 0
 
@@ -107,15 +107,10 @@ class PresinaEnv(gym.Env):
         info = {}
 
         if self.current_phase == 0:
-            # predictions for opponents
-            for pid in range(1, self.num_players):
-                pred = make_prediction(self.hands[pid], pid, self.num_players, [self.agent_prediction]+self.opponent_predictions)
-                self.opponent_predictions.append(pred)
-
             p = int(action['predict'])
             if p < 0 or p > self.hand_size:
                 p = max(0, min(self.hand_size, p))
-                reward -= 1 # 0.1
+                reward -= 0.1
             self.agent_prediction = p
             self.current_phase = 1
             return self._get_obs(), reward, done, info
@@ -136,15 +131,15 @@ class PresinaEnv(gym.Env):
             reward -= 0.05
             info['invalid_play_replaced_with'] = agent_card
 
-        played = [(0, agent_card)]
+        trick = [(0, agent_card)]
         for pid in range(1, self.num_players):
             card = random.choice(self.hands[pid])
             self.hands[pid].remove(card)
-            played.append((pid, card))
+            trick.append((pid, card))
 
-        self.played = [c for _, c in played]
+        self.played = [c for _, c in trick]
 
-        winner = max(played, key=lambda x: x[1])[0]
+        winner = max(trick, key=lambda x: x[1])[0]
         if winner == 0:
             self.takes += 1
 
@@ -157,6 +152,14 @@ class PresinaEnv(gym.Env):
         actual = self.takes
         predicted = self.agent_prediction
 
+        # if self.reward_type == 'exact':
+        #     reward += 1.0 if actual == predicted else 0.0
+        # elif self.reward_type == 'neg_abs':
+        #     reward += -abs(actual - predicted)
+        # elif self.reward_type == 'sparse_win':
+        #     reward += 1.0 if actual == predicted else -1.0
+        # else:
+        #     reward += 1.0 if actual == predicted else 0.0
         reward += 1.0 if actual == predicted else abs(actual - predicted)*-1
 
         info.update({'actual': actual, 'predicted': predicted})
@@ -166,17 +169,3 @@ class PresinaEnv(gym.Env):
         print(f"Phase: {self.current_phase}, prediction: {self.agent_prediction}, takes: {self.takes}")
         print(f"Agent hand: {self.hands[0]}")
 
-
-
-def make_prediction(hand, player_position, num_players, predictions_made):
-    prediction = 0
-    for card in hand:
-        if card > 30:
-            prediction += 1
-    if player_position == num_players - 1:
-        if sum(predictions_made) + prediction == len(hand):
-            if prediction > 0:
-                prediction -= 1
-            else:
-                prediction += 1
-    return prediction

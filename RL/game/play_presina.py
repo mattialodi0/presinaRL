@@ -1,5 +1,5 @@
 import gym
-from presina_env import PresinaEnv
+from RL.game.PresinaEnvLastRound import PresinaEnv
 
 def play_presina():
     # Create an instance of the Presina environment

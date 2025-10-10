@@ -6,9 +6,9 @@ import sys
 from collections import defaultdict
 if "../" not in sys.path:
   sys.path.append("../") 
-from game.presina_env import PresinaEnv
+from RL.game.PresinaEnvLastRound import PresinaEnvLastRound
 
-env = PresinaEnv()
+env = PresinaEnvLastRound()
 
 def make_epsilon_greedy_policy(Q, epsilon, nA):
     """Creates an epsilon-greedy policy based on a given Q-function and epsilon."""
@@ -19,28 +19,14 @@ def make_epsilon_greedy_policy(Q, epsilon, nA):
         return A
     return policy_fn
 
-def q_learning(env, num_episodes, discount_factor=1.0, alpha=0.5, epsilon=0.1):
-    """
-    Q-Learning algorithm: Off-policy TD control. Finds the optimal greedy policy
-    while following an epsilon-greedy policy
-    
-    Args:
-        env: OpenAI environment.
-        num_episodes: Number of episodes to run for.
-        discount_factor: Gamma discount factor.
-        alpha: TD learning rate.
-        epsilon: Chance to sample a random action. Float between 0 and 1.
-    
-    Returns:
-        A tuple (Q, episode_lengths).
-        Q is the optimal action-value function, a dictionary mapping state -> action values.
-        stats is an EpisodeStats object with two numpy arrays for episode_lengths and episode_rewards.
-    """
+
+def sarsa(env, num_episodes, discount_factor=1.0, alpha=0.5, epsilon=0.1):
+    """SARSA algorithm: On-policy TD control. Finds the optimal epsilon-greedy policy."""
     
     # The final action-value function.
     # A nested dictionary that maps state -> (action -> action-value).
     Q = defaultdict(lambda: np.zeros(env.action_space.n))
-
+    
     # The policy we're following
     policy = make_epsilon_greedy_policy(Q, epsilon, env.action_space.n)
     
@@ -53,59 +39,36 @@ def q_learning(env, num_episodes, discount_factor=1.0, alpha=0.5, epsilon=0.1):
         # Reset the environment and pick the first action
         state, info = env.reset()
         state = tuple(sorted(state))
+        action_probs = policy(state)
+        action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
         
         # One step in the environment
-        # total_reward = 0.0
         while True:
-            
             # Take a step
-            action_probs = policy(state)
-            action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
             next_state, reward, done, _, _ = env.step(action)
             next_state = tuple(sorted(next_state))
-            
+            # Pick the next action
+            next_action_probs = policy(next_state)
+            next_action = np.random.choice(np.arange(len(next_action_probs)), p=next_action_probs)
+                        
             # TD Update
-            best_next_action = np.argmax(Q[next_state])    
-            td_target = reward + discount_factor * Q[next_state][best_next_action]
+            td_target = reward + discount_factor * Q[next_state][next_action]
             td_delta = td_target - Q[state][action]
             Q[state][action] += alpha * td_delta
-                
+    
             if done:
                 break
                 
-            state = next_state
+            action = next_action
+            state = next_state        
     
     return Q
 
 
 # TRAIN
-Q = q_learning(env, 100000)
+Q = sarsa(env, 100000)
 
 # TEST
-# n_episodes = 10
-# ep_len = []
-# policy = make_epsilon_greedy_policy(Q, 0.1, env.action_space.n)
-
-# for i in range(n_episodes):
-#     state = env.reset()
-#     done = False
-#     l = 0
-#     while not done:
-#         # action_probs = policy(state)
-#         # action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
-#         # state, reward, done, _ = env.step(action)
-        
-#         action = np.argmax(Q[state])
-#         state, reward, done, _ = env.step(action)
-
-#         l += 1
-
-#     ep_len.append(l)
-
-# print(f"Played {n_episodes} episodes -> Average episode length: {np.mean(ep_len):.2f}")
-# print(f"Median episode length: {np.median(ep_len):.2f}, Min episode length: {np.min(ep_len):.2f}, Max episode length: {np.max(ep_len):.2f}")
-
-
 n_episodes = 1000
 wins = losses = errs = 0
 policy = make_epsilon_greedy_policy(Q, 0.1, env.action_space.n)
