@@ -6,7 +6,7 @@ if "../" not in sys.path:
   sys.path.append("../") 
 from RL.game.PresinaEnv import PresinaEnv
 
-env = PresinaEnv(hand_size=4, num_players=4)
+env = PresinaEnv(hand_size=4, num_players=4, agent_pos=3)
 
 # For PresinaEnv, actions are dicts. We need to enumerate possible actions for each phase.
 def get_possible_actions(obs, hand_size):
@@ -43,7 +43,6 @@ def make_epsilon_greedy_policy(Q_pred, Q_play, epsilon, env):
                 if best_action < nA:
                     A[best_action] += (1.0 - epsilon)
                 else:
-                    print(f"Best action {best_action} out of range for nA={nA} in obs={obs}")
                     A[0] += (1.0 - epsilon)
                 r += 1
             else:
@@ -54,15 +53,14 @@ def make_epsilon_greedy_policy(Q_pred, Q_play, epsilon, env):
             return np.array([1.0]), actions
     return policy_fn
 
-
 def mc_control_epsilon_greedy(env, num_episodes, discount_factor=1.0, epsilon=0.1):
     try:
         returns_sum_pred = defaultdict(float)
         returns_count_pred = defaultdict(float)
         returns_sum_play = defaultdict(float)
         returns_count_play = defaultdict(float)
-        Q_pred = defaultdict(lambda: np.zeros(env.hand_size + 1))  # max possible actions per state
-        Q_play = defaultdict(lambda: np.zeros(env.hand_size))
+        Q_pred = defaultdict(lambda: np.full(env.hand_size + 1, -np.inf))  # max possible actions per state
+        Q_play = defaultdict(lambda: np.full(env.hand_size, -np.inf))
         policy = make_epsilon_greedy_policy(Q_pred, Q_play, epsilon, env)
 
         for i_episode in range(1, num_episodes + 1):
