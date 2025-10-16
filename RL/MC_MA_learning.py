@@ -1,6 +1,7 @@
 import numpy as np
 from collections import defaultdict
 import sys
+import pickle
 if "../" not in sys.path:
   sys.path.append("../") 
 from RL.game.PresinaEnvMultiAgent import PresinaEnvMultiAgent
@@ -8,7 +9,7 @@ from RL.game.PresinaEnvMultiAgent import PresinaEnvMultiAgent
 
 
 # Parameters
-num_episodes = 10000
+num_episodes = 100000
 hand_size = 4
 num_players = 4
 epsilon = 0.1
@@ -37,9 +38,11 @@ for episode in range(num_episodes):
     obs = env.reset()
     done = False
     episode_history = [[] for _ in range(num_players)]  # [(state, action, reward)]
+    i = 0
     while not done:
         phase = obs['phase']
-        pid = obs['turn']
+        # pid = obs['turn']
+        pid = i % num_players
         if phase == 0:
             # Prediction phase
             state = tuple(obs['hand'])
@@ -58,6 +61,7 @@ for episode in range(num_episodes):
             next_obs, reward, done, info = env.step({'play': action})
             episode_history[pid].append((('play', state), action, reward))
         obs = next_obs
+        i += 1
 
     # Monte Carlo update
     for pid in range(num_players):
@@ -94,10 +98,10 @@ for episode in range(test_episodes):
             action = np.argmax(Q_play[state]) if valid_cards else 0
             next_obs, reward, done, info = env.step({'play': action})
         obs = next_obs
-        for pid in range(num_players):
-            total_rewards[pid] += reward[pid]
-            if reward[pid] > 0:
-                total_wins[pid] += 1
+    for pid in range(num_players):
+        total_rewards[pid] += reward[pid]
+        if reward[pid] >= 1:
+            total_wins[pid] += 1
 
 print("")
 print("Average rewards per agent:", total_rewards / test_episodes)
@@ -124,3 +128,10 @@ print("Total wins per agent:", total_wins)
 #         next_obs, reward, done, info = env.step({'play': action})
 #         env.render()
 #     obs = next_obs
+
+
+with open("Q_pred.pkl", "wb") as f:
+    pickle.dump(dict(Q_pred), f)
+
+with open("Q_play.pkl", "wb") as f:
+    pickle.dump(dict(Q_play), f)

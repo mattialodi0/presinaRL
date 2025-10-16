@@ -61,8 +61,6 @@ class PresinaEnvMultiAgent(AECEnv):
         self.takes = None
         self.turn = 0
         self.turn_step = 0
-        self.h=0
-        self.k=0
 
     def reset(self, seed=None, return_info=False, options=None):
         if seed is not None:
@@ -86,13 +84,12 @@ class PresinaEnvMultiAgent(AECEnv):
         done = False
         info = {}
         pid = self.turn_step
-
+        
         # Prediction phase
         if self.current_phase == 0:            
             p = int(action['predict'])
             if p < 0 or p > self.hand_size:
                 p = max(0, min(self.hand_size, p))
-                reward[pid] -= 0.1
             self.predictions[pid] = p
             self.turn_step += 1
             # switch to play phase
@@ -108,14 +105,11 @@ class PresinaEnvMultiAgent(AECEnv):
             # print(action)
             play_choice = int(action['play'])
             if 0 <= play_choice and play_choice < self.hand_size:
-                self.h += 1
                 card = self.hands[pid][play_choice]
                 self.hands[pid].remove(card)
             else:
-                self.k += 1
                 card = random.choice(self.hands[pid])
                 self.hands[pid].remove(card)
-                reward[pid] -= 0.05
                 info['invalid_play_replaced_with'] = card
             if self.turn_step == 0:
                 self.played = [0 for _ in range(self.num_players)]
@@ -132,13 +126,24 @@ class PresinaEnvMultiAgent(AECEnv):
                 # Check if game over
                 if len(self.hands[0]) == 0 or self.turn >= self.hand_size:
                     done = True
+                    for pid in range(self.num_players):
+                        actual = self.takes[pid]
+                        predicted = self.predictions[pid]
+                        if actual == predicted:
+                            reward[pid] += 1.0
+                        else:
+                            reward[pid] += abs(actual - predicted)*-1
+                    info.update({'actual': actual, 'predicted': predicted})
+
+            # calc reward for non-final turn
+            if not done:
+                for pid in range(self.num_players):
                     actual = self.takes[pid]
                     predicted = self.predictions[pid]
                     if actual == predicted:
-                        reward[pid] += 1.0
-                    else:
-                        reward[pid] += abs(actual - predicted)*-1
-                    info.update({'actual': actual, 'predicted': predicted})
+                        reward[pid] += 0.5
+                    elif actual > predicted:
+                        reward[pid] += abs(predicted - actual)*-1
 
             return self._get_obs_turn(), reward, done, info
 
@@ -146,9 +151,7 @@ class PresinaEnvMultiAgent(AECEnv):
         print(f"Phase: {self.current_phase}, turn: {self.turn}, step: {self.turn_step}")
         for pid in range(self.num_players):
             print(f"Player {pid}: hand={self.hands[pid]}, prediction={self.predictions[pid]}, takes={self.takes[pid]}")
-        print(self.h)
-        print(self.k)
-
+        
     def _get_obs_turn(self):
         # Only return observation for current agent
         pid = self.turn_step
@@ -166,3 +169,6 @@ class PresinaEnvMultiAgent(AECEnv):
             'turn': pid,
         }
         return obs
+
+
+# no turn order change on catch
